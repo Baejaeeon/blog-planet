@@ -4,7 +4,7 @@ plugins {
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.example'
+group = 'com.toma'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 
@@ -18,10 +18,60 @@ repositories {
 	mavenCentral()
 }
 
+def frontendDir = layout.projectDirectory.dir('frontend')
+def generatedFrontendResources = layout.buildDirectory.dir('generated/frontend')
+def npmExecutable = System.getProperty('os.name').toLowerCase().contains('windows') ? 'npm.cmd' : 'npm'
+
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter'
+	compileOnly 'org.projectlombok:lombok'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	annotationProcessor 'org.projectlombok:lombok'
+	runtimeOnly 'com.h2database:h2'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+sourceSets {
+	main {
+		resources {
+			srcDir generatedFrontendResources
+		}
+	}
+}
+
+tasks.register('npmInstall', Exec) {
+	workingDir = frontendDir.asFile
+	commandLine npmExecutable, 'install'
+	inputs.file frontendDir.file('package.json')
+	inputs.file frontendDir.file('package-lock.json').asFile.exists() ? frontendDir.file('package-lock.json') : frontendDir.file('package.json')
+	outputs.dir frontendDir.dir('node_modules')
+}
+
+tasks.register('npmBuild', Exec) {
+	dependsOn 'npmInstall'
+	workingDir = frontendDir.asFile
+	commandLine npmExecutable, 'run', 'build'
+	inputs.dir frontendDir.dir('src')
+	inputs.dir frontendDir.dir('public')
+	inputs.file frontendDir.file('package.json')
+	inputs.file frontendDir.file('vite.config.js')
+	inputs.file frontendDir.file('index.html')
+	outputs.dir frontendDir.dir('dist')
+}
+
+tasks.register('syncFrontendAssets', Sync) {
+	dependsOn 'npmBuild'
+	from frontendDir.dir('dist')
+	into generatedFrontendResources.map { it.dir('static') }
+}
+
+tasks.named('processResources') {
+	dependsOn 'syncFrontendAssets'
 }
 
 tasks.named('test') {

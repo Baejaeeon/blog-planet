@@ -14,3 +14,9 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+blog-planet:
+  feed:
+    polling-interval: 30m
+  sample-data:
+    enabled: false

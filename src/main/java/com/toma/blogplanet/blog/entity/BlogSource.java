@@ -46,6 +46,15 @@ public class BlogSource {
     @Column(length = 50)
     private String category;
 
+    @Column
+    private LocalDateTime lastPollSucceededAt;
+
+    @Column
+    private LocalDateTime lastPollFailedAt;
+
+    @Column(length = 1000)
+    private String lastPollFailureMessage;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -62,5 +71,14 @@ public class BlogSource {
     @PreUpdate
     void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public void markPollSuccess(LocalDateTime succeededAt) {
+        this.lastPollSucceededAt = succeededAt;
+    }
+
+    public void markPollFailure(LocalDateTime failedAt, String failureMessage) {
+        this.lastPollFailedAt = failedAt;
+        this.lastPollFailureMessage = failureMessage;
     }
 }

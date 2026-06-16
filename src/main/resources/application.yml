@@ -18,5 +18,7 @@ spring:
 blog-planet:
   feed:
     polling-interval: 30m
+    connect-timeout: 3s
+    read-timeout: 5s
   sample-data:
     enabled: false

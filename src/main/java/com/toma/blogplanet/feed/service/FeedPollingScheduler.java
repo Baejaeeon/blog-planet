@@ -15,7 +15,7 @@ public class FeedPollingScheduler {
     private final FeedTargetService feedTargetService;
     private final FeedPollingService feedPollingService;
 
-    @Scheduled(fixedDelayString = "#{@feedPollingProperties.pollingInterval().toMillis()}")
+    @Scheduled(fixedDelayString = "${blog-planet.feed.polling-interval}")
     public void poll() {
         int enabledTargetCount = feedTargetService.getEnabledTargets().size();
         int savedPostCount = feedPollingService.pollEnabledSources();

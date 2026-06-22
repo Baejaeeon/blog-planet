@@ -2,6 +2,7 @@ package com.toma.blogplanet.feed.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -16,6 +17,7 @@ import com.toma.blogplanet.blog.entity.BlogSource;
 import com.toma.blogplanet.exception.FeedReadException;
 import com.toma.blogplanet.feed.entity.BlogPost;
 import com.toma.blogplanet.infrastructure.jpa.BlogPostRepository;
+import com.toma.blogplanet.notification.service.NotificationDispatchService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,6 +42,9 @@ class FeedPollingServiceTest {
     @Mock
     private BlogPostRepository blogPostRepository;
 
+    @Mock
+    private NotificationDispatchService notificationDispatchService;
+
     private FeedPollingService feedPollingService;
 
     @BeforeEach
@@ -49,7 +54,8 @@ class FeedPollingServiceTest {
                 feedReader,
                 blogPostRepository,
                 new BlogPostDuplicateKeyResolver(),
-                new FeedUrlNormalizer()
+                new FeedUrlNormalizer(),
+                notificationDispatchService
         );
     }
 
@@ -64,6 +70,7 @@ class FeedPollingServiceTest {
         )));
         when(blogPostRepository.findAllByBlogSourceId(blogSource.getId())).thenReturn(List.of());
         when(blogPostRepository.existsByBlogSourceIdAndExternalGuid(blogSource.getId(), "guid-1")).thenReturn(false);
+        when(blogPostRepository.saveAll(anyIterable())).thenAnswer(invocation -> toList(invocation.getArgument(0)));
 
         int savedCount = feedPollingService.saveNewPosts(blogSource);
 
@@ -80,6 +87,7 @@ class FeedPollingServiceTest {
         assertThat(blogSource.getLastPollSucceededAt()).isNotNull();
         assertThat(blogSource.getLastPollFailedAt()).isNull();
         assertThat(blogSource.getLastPollFailureMessage()).isNull();
+        verify(notificationDispatchService).notifyNewPosts(blogSource, savedPosts);
     }
 
     @Test
@@ -99,6 +107,7 @@ class FeedPollingServiceTest {
         assertThat(savedCount).isZero();
         assertThat(blogSource.getLastPollSucceededAt()).isNotNull();
         verify(blogPostRepository, never()).saveAll(any());
+        verify(notificationDispatchService).notifyNewPosts(blogSource, List.of());
     }
 
     @Test
@@ -125,6 +134,7 @@ class FeedPollingServiceTest {
         assertThat(savedCount).isZero();
         assertThat(blogSource.getLastPollSucceededAt()).isNotNull();
         verify(blogPostRepository, never()).saveAll(any());
+        verify(notificationDispatchService).notifyNewPosts(blogSource, List.of());
     }
 
     @Test
@@ -165,6 +175,7 @@ class FeedPollingServiceTest {
         when(blogPostRepository.findAllByBlogSourceId(secondSource.getId())).thenReturn(List.of());
         when(blogPostRepository.existsByBlogSourceIdAndExternalGuid(firstSource.getId(), "guid-1")).thenReturn(false);
         when(blogPostRepository.existsByBlogSourceIdAndExternalGuid(secondSource.getId(), "guid-2")).thenReturn(false);
+        when(blogPostRepository.saveAll(anyIterable())).thenAnswer(invocation -> toList(invocation.getArgument(0)));
 
         int savedCount = feedPollingService.pollEnabledSources();
 
@@ -172,6 +183,7 @@ class FeedPollingServiceTest {
         assertThat(firstSource.getLastPollSucceededAt()).isNotNull();
         assertThat(secondSource.getLastPollSucceededAt()).isNotNull();
         verify(blogPostRepository, times(2)).saveAll(any());
+        verify(notificationDispatchService, times(2)).notifyNewPosts(any(), any());
     }
 
     @Test
@@ -191,6 +203,7 @@ class FeedPollingServiceTest {
         when(blogPostRepository.findAllByBlogSourceId(succeededSource.getId())).thenReturn(List.of());
         when(blogPostRepository.existsByBlogSourceIdAndExternalGuid(succeededSource.getId(), "guid-2"))
                 .thenReturn(false);
+        when(blogPostRepository.saveAll(anyIterable())).thenAnswer(invocation -> toList(invocation.getArgument(0)));
 
         int savedCount = feedPollingService.pollEnabledSources();
 
@@ -199,6 +212,7 @@ class FeedPollingServiceTest {
         assertThat(failedSource.getLastPollFailureMessage()).isEqualTo("피드를 읽는 중 오류가 발생했습니다.");
         assertThat(succeededSource.getLastPollSucceededAt()).isNotNull();
         verify(blogPostRepository, times(1)).saveAll(any());
+        verify(notificationDispatchService, times(1)).notifyNewPosts(any(), any());
     }
 
     private BlogSource blogSource() {

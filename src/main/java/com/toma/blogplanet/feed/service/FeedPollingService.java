@@ -6,6 +6,7 @@ import com.toma.blogplanet.blog.entity.BlogSource;
 import com.toma.blogplanet.exception.FeedReadException;
 import com.toma.blogplanet.feed.entity.BlogPost;
 import com.toma.blogplanet.infrastructure.jpa.BlogPostRepository;
+import com.toma.blogplanet.notification.service.NotificationDispatchService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ public class FeedPollingService {
     private final BlogPostRepository blogPostRepository;
     private final BlogPostDuplicateKeyResolver duplicateKeyResolver;
     private final FeedUrlNormalizer feedUrlNormalizer;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Transactional
     public int pollEnabledSources() {
@@ -80,12 +82,14 @@ public class FeedPollingService {
                 existingPosts.add(blogPost);
             }
 
+            List<BlogPost> savedPosts = newPosts;
             if (!newPosts.isEmpty()) {
-                blogPostRepository.saveAll(newPosts);
+                savedPosts = blogPostRepository.saveAll(newPosts);
             }
 
             blogSource.markPollSuccess(LocalDateTime.now());
-            return newPosts.size();
+            dispatchNotifications(blogSource, savedPosts);
+            return savedPosts.size();
         } catch (FeedReadException | IllegalArgumentException exception) {
             blogSource.markPollFailure(LocalDateTime.now(), exception.getMessage());
             throw exception;
@@ -130,5 +134,17 @@ public class FeedPollingService {
 
     private boolean hasText(String value) {
         return StringUtils.hasText(value);
+    }
+
+    private void dispatchNotifications(BlogSource blogSource, List<BlogPost> newPosts) {
+        try {
+            notificationDispatchService.notifyNewPosts(blogSource, newPosts);
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Notification dispatch failed. blogSourceId={}, message={}",
+                    blogSource.getId(),
+                    exception.getMessage()
+            );
+        }
     }
 }

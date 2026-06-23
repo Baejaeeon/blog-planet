@@ -47,4 +47,29 @@ class BlogSourceValidationServiceTest {
         verify(blogSourceRepository).existsByFeedUrl("https://example.com/feed");
         verifyNoMoreInteractions(blogSourceRepository);
     }
+
+    @Test
+    @DisplayName("수정 시 자기 자신을 제외하고 중복된 feed URL이 없으면 검증을 통과한다.")
+    void validateFeedUrlNotDuplicatedForUpdate() {
+        given(blogSourceRepository.existsByFeedUrlAndIdNot("https://example.com/feed", 1L)).willReturn(false);
+
+        assertThatCode(() -> blogSourceValidationService.validateFeedUrlNotDuplicated("https://example.com/feed", 1L))
+                .doesNotThrowAnyException();
+
+        verify(blogSourceRepository).existsByFeedUrlAndIdNot("https://example.com/feed", 1L);
+        verifyNoMoreInteractions(blogSourceRepository);
+    }
+
+    @Test
+    @DisplayName("수정 시 다른 블로그 소스가 같은 feed URL을 사용 중이면 예외가 발생한다.")
+    void validateDuplicatedFeedUrlForUpdate() {
+        given(blogSourceRepository.existsByFeedUrlAndIdNot("https://example.com/feed", 1L)).willReturn(true);
+
+        assertThatThrownBy(() -> blogSourceValidationService.validateFeedUrlNotDuplicated("https://example.com/feed", 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("feedUrl");
+
+        verify(blogSourceRepository).existsByFeedUrlAndIdNot("https://example.com/feed", 1L);
+        verifyNoMoreInteractions(blogSourceRepository);
+    }
 }

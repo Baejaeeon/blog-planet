@@ -9,4 +9,6 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
     boolean existsByBlogSourceIdAndExternalGuid(Long blogSourceId, String externalGuid);
 
     List<BlogPost> findAllByBlogSourceId(Long blogSourceId);
+
+    List<BlogPost> findAllByOrderByFirstSeenAtDescIdDesc();
 }

@@ -22,3 +22,9 @@ blog-planet:
     read-timeout: 5s
   sample-data:
     enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

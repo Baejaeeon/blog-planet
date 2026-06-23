@@ -12,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class BlogSourceUpsertRequest {
 
-    private static final String URL_REGEX = "^(https?)://.+$";
+    private static final String URL_REGEX = "^(https?://.+)?$";
 
     @NotBlank(message = "이름은 필수입니다.")
     private String name;

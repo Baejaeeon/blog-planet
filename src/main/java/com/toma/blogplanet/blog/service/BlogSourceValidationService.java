@@ -17,4 +17,10 @@ public class BlogSourceValidationService {
             throw new IllegalArgumentException("이미 등록된 feedUrl 입니다.");
         }
     }
+
+    public void validateFeedUrlNotDuplicated(String feedUrl, Long blogSourceId) {
+        if (blogSourceRepository.existsByFeedUrlAndIdNot(feedUrl, blogSourceId)) {
+            throw new IllegalArgumentException("이미 등록된 feedUrl 입니다.");
+        }
+    }
 }

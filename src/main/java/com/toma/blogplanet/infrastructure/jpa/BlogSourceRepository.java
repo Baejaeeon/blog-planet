@@ -8,5 +8,7 @@ public interface BlogSourceRepository extends JpaRepository<BlogSource, Long> {
 
     boolean existsByFeedUrl(String feedUrl);
 
+    boolean existsByFeedUrlAndIdNot(String feedUrl, Long id);
+
     List<BlogSource> findAllByEnabledTrue();
 }

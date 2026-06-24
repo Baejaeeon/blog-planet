@@ -61,7 +61,7 @@ tasks.register('npmBuild', Exec) {
 	inputs.dir frontendDir.dir('src')
 	inputs.dir frontendDir.dir('public')
 	inputs.file frontendDir.file('package.json')
-	inputs.file frontendDir.file('vite.config.js')
+	inputs.file frontendDir.file('vite.config.ts')
 	inputs.file frontendDir.file('index.html')
 	outputs.dir frontendDir.dir('dist')
 }

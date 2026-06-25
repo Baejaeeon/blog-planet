@@ -1,5 +1,7 @@
 package com.toma.blogplanet.blog.service;
 
+import static com.toma.blogplanet.exception.ExceptionMessages.DUPLICATE_FEED_URL;
+
 import com.toma.blogplanet.infrastructure.jpa.BlogSourceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,13 +16,13 @@ public class BlogSourceValidationService {
 
     public void validateFeedUrlNotDuplicated(String feedUrl) {
         if (blogSourceRepository.existsByFeedUrl(feedUrl)) {
-            throw new IllegalArgumentException("이미 등록된 feedUrl 입니다.");
+            throw new IllegalArgumentException(DUPLICATE_FEED_URL);
         }
     }
 
     public void validateFeedUrlNotDuplicated(String feedUrl, Long blogSourceId) {
         if (blogSourceRepository.existsByFeedUrlAndIdNot(feedUrl, blogSourceId)) {
-            throw new IllegalArgumentException("이미 등록된 feedUrl 입니다.");
+            throw new IllegalArgumentException(DUPLICATE_FEED_URL);
         }
     }
 }

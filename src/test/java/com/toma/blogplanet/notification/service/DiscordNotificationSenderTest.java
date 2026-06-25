@@ -22,7 +22,7 @@ import org.springframework.web.client.RestClient;
 class DiscordNotificationSenderTest {
 
     @Test
-    @DisplayName("Discord 채널 타입만 지원한다.")
+    @DisplayName("Discord 채널 타입만 지원한다")
     void supportsOnlyDiscordChannelType() {
         DiscordNotificationSender sender = new DiscordNotificationSender(RestClient.builder());
 
@@ -32,7 +32,7 @@ class DiscordNotificationSenderTest {
     }
 
     @Test
-    @DisplayName("Discord 웹훅으로 새 글 알림 메시지를 전송한다.")
+    @DisplayName("Discord 웹훅으로 새 글 알림 메시지를 전송한다")
     void sendPostsMessageToDiscordWebhook() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -43,7 +43,7 @@ class DiscordNotificationSenderTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().json("""
                         {
-                          "content": "새 글 알림\n출처: blog-planet\n제목: 첫 번째 글\n링크: https://example.com/posts/1\n발행일: 2026-06-22T10:15:30"
+                          "content": "새 글 알림\\n출처: blog-planet\\n제목: 첫 번째 글\\n링크: https://example.com/posts/1\\n발행일: 2026-06-22T10:15:30"
                         }
                         """))
                 .andRespond(withNoContent());
@@ -62,7 +62,7 @@ class DiscordNotificationSenderTest {
     }
 
     @Test
-    @DisplayName("Discord 전송 실패 시 공통 예외로 감싼다.")
+    @DisplayName("Discord 전송 실패 시 공통 예외로 감싼다")
     void sendWrapsRestClientException() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

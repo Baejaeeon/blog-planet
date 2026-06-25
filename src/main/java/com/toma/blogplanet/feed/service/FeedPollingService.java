@@ -39,7 +39,7 @@ public class FeedPollingService {
                 savedPostCount += saveNewPosts(blogSource);
             } catch (FeedReadException | IllegalArgumentException exception) {
                 log.warn(
-                        "Feed polling failed. blogSourceId={}, feedUrl={}, message={}",
+                        "피드 수집에 실패했습니다. blogSourceId={}, feedUrl={}, message={}",
                         blogSource.getId(),
                         blogSource.getFeedUrl(),
                         exception.getMessage()
@@ -141,7 +141,7 @@ public class FeedPollingService {
             notificationDispatchService.notifyNewPosts(blogSource, newPosts);
         } catch (RuntimeException exception) {
             log.warn(
-                    "Notification dispatch failed. blogSourceId={}, message={}",
+                    "알림 발송 처리에 실패했습니다. blogSourceId={}, message={}",
                     blogSource.getId(),
                     exception.getMessage()
             );

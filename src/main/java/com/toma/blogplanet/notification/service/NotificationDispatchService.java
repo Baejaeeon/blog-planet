@@ -31,7 +31,7 @@ public class NotificationDispatchService {
             NotificationSender sender = notificationSenderRegistry.findSender(channel.getType()).orElse(null);
             if (sender == null) {
                 log.warn(
-                        "No notification sender found. channelId={}, channelType={}",
+                        "알림 발송기를 찾지 못했습니다. channelId={}, channelType={}",
                         channel.getId(),
                         channel.getType()
                 );
@@ -48,7 +48,7 @@ public class NotificationDispatchService {
                     saveSuccessLog(channel, newPost);
                 } catch (RuntimeException exception) {
                     log.warn(
-                            "Notification send failed. channelId={}, blogPostId={}, message={}",
+                            "알림 발송에 실패했습니다. channelId={}, blogPostId={}, message={}",
                             channel.getId(),
                             newPost.getId(),
                             exception.getMessage()

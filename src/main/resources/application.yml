@@ -2,7 +2,7 @@ spring:
   application:
     name: blog-planet
   datasource:
-    url: jdbc:h2:file:./data/blog-planet;AUTO_SERVER=TRUE
+    url: jdbc:h2:file:${blog-planet.storage.h2-file-path};AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -16,15 +16,39 @@ spring:
     open-in-view: false
 
 blog-planet:
+  storage:
+    h2-file-path: ${BLOG_PLANET_H2_FILE_PATH:./data/blog-planet}
   feed:
-    polling-interval: 30m
-    connect-timeout: 3s
-    read-timeout: 5s
+    polling-interval: ${BLOG_PLANET_FEED_POLLING_INTERVAL:30m}
+    connect-timeout: ${BLOG_PLANET_FEED_CONNECT_TIMEOUT:3s}
+    read-timeout: ${BLOG_PLANET_FEED_READ_TIMEOUT:5s}
   sample-data:
     enabled: false
+  notification:
+    discord:
+      webhook-url: ${BLOG_PLANET_NOTIFICATION_DISCORD_WEBHOOK_URL:}
 
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# localhost:8080/actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.toma.blogplanet: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN

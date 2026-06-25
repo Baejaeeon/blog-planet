@@ -24,7 +24,7 @@ class BlogSourceValidationServiceTest {
     private BlogSourceValidationService blogSourceValidationService;
 
     @Test
-    @DisplayName("중복되지 않은 feed URL이면 검증을 통과한다.")
+    @DisplayName("중복되지 않은 feed URL이면 검증을 통과한다")
     void validateFeedUrlNotDuplicated() {
         given(blogSourceRepository.existsByFeedUrl("https://example.com/feed")).willReturn(false);
 
@@ -36,20 +36,20 @@ class BlogSourceValidationServiceTest {
     }
 
     @Test
-    @DisplayName("이미 등록된 feed URL이면 예외가 발생한다.")
+    @DisplayName("이미 등록된 feed URL이면 예외가 발생한다")
     void validateDuplicatedFeedUrl() {
         given(blogSourceRepository.existsByFeedUrl("https://example.com/feed")).willReturn(true);
 
         assertThatThrownBy(() -> blogSourceValidationService.validateFeedUrlNotDuplicated("https://example.com/feed"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("feedUrl");
+                .hasMessage("이미 등록된 피드 URL입니다.");
 
         verify(blogSourceRepository).existsByFeedUrl("https://example.com/feed");
         verifyNoMoreInteractions(blogSourceRepository);
     }
 
     @Test
-    @DisplayName("수정 시 자기 자신을 제외하고 중복된 feed URL이 없으면 검증을 통과한다.")
+    @DisplayName("수정 시 자기 자신을 제외하고 중복된 feed URL이 없으면 검증을 통과한다")
     void validateFeedUrlNotDuplicatedForUpdate() {
         given(blogSourceRepository.existsByFeedUrlAndIdNot("https://example.com/feed", 1L)).willReturn(false);
 
@@ -61,13 +61,13 @@ class BlogSourceValidationServiceTest {
     }
 
     @Test
-    @DisplayName("수정 시 다른 블로그 소스가 같은 feed URL을 사용 중이면 예외가 발생한다.")
+    @DisplayName("수정 시 다른 블로그 소스가 같은 feed URL을 사용 중이면 예외가 발생한다")
     void validateDuplicatedFeedUrlForUpdate() {
         given(blogSourceRepository.existsByFeedUrlAndIdNot("https://example.com/feed", 1L)).willReturn(true);
 
         assertThatThrownBy(() -> blogSourceValidationService.validateFeedUrlNotDuplicated("https://example.com/feed", 1L))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("feedUrl");
+                .hasMessage("이미 등록된 피드 URL입니다.");
 
         verify(blogSourceRepository).existsByFeedUrlAndIdNot("https://example.com/feed", 1L);
         verifyNoMoreInteractions(blogSourceRepository);

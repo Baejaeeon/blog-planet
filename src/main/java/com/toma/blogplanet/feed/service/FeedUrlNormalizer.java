@@ -1,5 +1,8 @@
 package com.toma.blogplanet.feed.service;
 
+import static com.toma.blogplanet.exception.ExceptionMessages.URL_CANNOT_BE_NORMALIZED;
+import static com.toma.blogplanet.exception.ExceptionMessages.URL_REQUIRED_FOR_NORMALIZATION;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.springframework.stereotype.Component;
@@ -10,7 +13,7 @@ public class FeedUrlNormalizer {
 
     public String normalize(String rawUrl) {
         if (!StringUtils.hasText(rawUrl)) {
-            throw new IllegalArgumentException("정규화할 URL이 필요합니다.");
+            throw new IllegalArgumentException(URL_REQUIRED_FOR_NORMALIZATION);
         }
 
         URI uri = URI.create(rawUrl.trim());
@@ -24,7 +27,7 @@ public class FeedUrlNormalizer {
         try {
             return new URI(scheme, uri.getUserInfo(), host, port, path, query, null).toString();
         } catch (URISyntaxException exception) {
-            throw new IllegalArgumentException("정규화할 수 없는 URL입니다.", exception);
+            throw new IllegalArgumentException(URL_CANNOT_BE_NORMALIZED, exception);
         }
     }
 

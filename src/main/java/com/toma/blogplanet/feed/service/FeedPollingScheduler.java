@@ -19,8 +19,8 @@ public class FeedPollingScheduler {
     public void poll() {
         int enabledTargetCount = feedTargetService.getEnabledTargets().size();
         int savedPostCount = feedPollingService.pollEnabledSources();
-        log.debug(
-                "Feed polling scheduler tick. interval={}ms, enabledTargets={}, savedPosts={}",
+        log.info(
+                "피드 수집 스케줄러가 실행되었습니다. interval={}ms, enabledTargets={}, savedPosts={}",
                 feedPollingProperties.pollingInterval().toMillis(),
                 enabledTargetCount,
                 savedPostCount

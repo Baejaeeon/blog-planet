@@ -1,5 +1,7 @@
 package com.toma.blogplanet.notification.service;
 
+import static com.toma.blogplanet.exception.ExceptionMessages.DISCORD_NOTIFICATION_SEND_FAILED;
+
 import com.toma.blogplanet.exception.NotificationSendException;
 import com.toma.blogplanet.notification.entity.NotificationChannel;
 import com.toma.blogplanet.notification.entity.NotificationChannelType;
@@ -34,7 +36,7 @@ public class DiscordNotificationSender implements NotificationSender {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException exception) {
-            throw new NotificationSendException("Discord 알림 전송 중 오류가 발생했습니다.", exception);
+            throw new NotificationSendException(DISCORD_NOTIFICATION_SEND_FAILED, exception);
         }
     }
 

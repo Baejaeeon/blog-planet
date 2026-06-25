@@ -4,12 +4,14 @@ import com.toma.blogplanet.blog.entity.BlogSource;
 import com.toma.blogplanet.infrastructure.jpa.BlogSourceRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @Transactional
@@ -21,6 +23,7 @@ public class BlogSourceSampleDataInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (blogSourceRepository.count() > 0) {
+            log.info("이미 블로그 소스가 존재하여 샘플 데이터 초기화를 건너뜁니다.");
             return;
         }
 
@@ -47,5 +50,7 @@ public class BlogSourceSampleDataInitializer implements ApplicationRunner {
                         .category("DATA")
                         .build()
         ));
+
+        log.info("샘플 블로그 소스 초기화를 완료했습니다. count={}", blogSourceRepository.count());
     }
 }

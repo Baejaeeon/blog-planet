@@ -1,9 +1,11 @@
 package com.toma.blogplanet.blog.service;
 
+import static com.toma.blogplanet.exception.ExceptionMessages.BLOG_SOURCE_NOT_FOUND;
+
 import com.toma.blogplanet.blog.dto.BlogSourceEnabledUpdateRequest;
+import com.toma.blogplanet.blog.dto.BlogSourceResponse;
 import com.toma.blogplanet.blog.dto.BlogSourceStatusResponse;
 import com.toma.blogplanet.blog.dto.BlogSourceUpsertRequest;
-import com.toma.blogplanet.blog.dto.BlogSourceResponse;
 import com.toma.blogplanet.blog.entity.BlogSource;
 import com.toma.blogplanet.exception.BlogSourceNotFoundException;
 import com.toma.blogplanet.infrastructure.jpa.BlogSourceRepository;
@@ -98,7 +100,7 @@ public class BlogSourceService {
 
     private BlogSource getBlogSource(Long blogSourceId) {
         return blogSourceRepository.findById(blogSourceId)
-                .orElseThrow(() -> new BlogSourceNotFoundException("존재하지 않는 블로그 소스입니다."));
+                .orElseThrow(() -> new BlogSourceNotFoundException(BLOG_SOURCE_NOT_FOUND));
     }
 
     private BlogSourceResponse toResponse(BlogSource blogSource) {

@@ -1,5 +1,7 @@
 package com.toma.blogplanet.feed.service;
 
+import static com.toma.blogplanet.exception.ExceptionMessages.DUPLICATE_KEY_SOURCE_REQUIRED;
+
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -15,7 +17,7 @@ public class BlogPostDuplicateKeyResolver {
             return new DuplicateKey(DuplicateKeyType.NORMALIZED_URL, normalizedUrl.trim());
         }
 
-        throw new IllegalArgumentException("externalGuid 또는 normalizedUrl 중 하나는 필요합니다.");
+        throw new IllegalArgumentException(DUPLICATE_KEY_SOURCE_REQUIRED);
     }
 
     public record DuplicateKey(DuplicateKeyType type, String value) {

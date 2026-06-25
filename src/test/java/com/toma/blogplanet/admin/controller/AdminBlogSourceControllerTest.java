@@ -226,7 +226,7 @@ class AdminBlogSourceControllerTest {
                 .category("backend")
                 .build();
         given(blogSourceService.createBlogSource(org.mockito.ArgumentMatchers.any(BlogSourceUpsertRequest.class)))
-                .willThrow(new IllegalArgumentException("이미 등록된 feedUrl 입니다."));
+                .willThrow(new IllegalArgumentException("이미 등록된 피드 URL입니다."));
 
         mockMvc.perform(post("/api/admin/blog-sources")
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
@@ -234,7 +234,22 @@ class AdminBlogSourceControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message").value("이미 등록된 feedUrl 입니다."))
+                .andExpect(jsonPath("$.message").value("이미 등록된 피드 URL입니다."))
+                .andExpect(jsonPath("$.path").value("/api/admin/blog-sources"))
+                .andExpect(jsonPath("$.validationErrors.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("처리되지 않은 예외는 공통 예외 응답 형식으로 500을 반환한다.")
+    void getBlogSourcesReturnsInternalServerErrorResponse() throws Exception {
+        given(blogSourceService.getBlogSources())
+                .willThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(get("/api/admin/blog-sources"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.error").value("Internal Server Error"))
+                .andExpect(jsonPath("$.message").value("서버 내부 오류가 발생했습니다."))
                 .andExpect(jsonPath("$.path").value("/api/admin/blog-sources"))
                 .andExpect(jsonPath("$.validationErrors.length()").value(0));
     }

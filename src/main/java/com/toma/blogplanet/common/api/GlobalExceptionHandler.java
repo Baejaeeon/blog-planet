@@ -1,5 +1,8 @@
 package com.toma.blogplanet.common.api;
 
+import static com.toma.blogplanet.exception.ExceptionMessages.INTERNAL_SERVER_ERROR;
+import static com.toma.blogplanet.exception.ExceptionMessages.REQUEST_VALIDATION_FAILED;
+
 import com.toma.blogplanet.exception.BlogSourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -49,7 +52,7 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.BAD_REQUEST.value())
                         .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                        .message("요청 값 검증에 실패했습니다.")
+                        .message(REQUEST_VALIDATION_FAILED)
                         .path(request.getRequestURI())
                         .validationErrors(validationErrors)
                         .build());
@@ -62,7 +65,7 @@ public class GlobalExceptionHandler {
     ) {
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "서버 내부 오류가 발생했습니다.",
+                INTERNAL_SERVER_ERROR,
                 request.getRequestURI()
         );
     }

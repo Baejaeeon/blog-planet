@@ -1,16 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useBlogSourceForm } from '../composables/useBlogSourceForm';
-import type { BlogSource, BlogSourceUpsertRequest } from '../types';
+import type { ApiValidationError, BlogSource, BlogSourceUpsertRequest } from '../types';
 
 const props = defineProps<{
   selectedBlogSource: BlogSource | null;
   saveMessage: string | null;
+  formErrorMessage: string | null;
+  apiValidationErrors: ApiValidationError[];
 }>();
 
 const emit = defineEmits<{
   createNew: [];
   submit: [payload: BlogSourceUpsertRequest];
   cancelEdit: [];
+  clearFormError: [];
+  clearApiValidationError: [field: keyof BlogSourceUpsertRequest];
 }>();
 
 const {
@@ -21,6 +26,23 @@ const {
   buildSubmitPayload,
   resetForm
 } = useBlogSourceForm(() => props.selectedBlogSource);
+
+const apiValidationErrorMap = computed<Partial<Record<keyof BlogSourceUpsertRequest, string>>>(() =>
+  props.apiValidationErrors.reduce<Partial<Record<keyof BlogSourceUpsertRequest, string>>>((accumulator, validationError) => {
+    const field = validationError.field as keyof BlogSourceUpsertRequest;
+    accumulator[field] = validationError.message;
+    return accumulator;
+  }, {})
+);
+
+const resolveFieldError = (field: keyof BlogSourceUpsertRequest): string | undefined =>
+  fieldErrors[field] ?? apiValidationErrorMap.value[field];
+
+const handleFieldInput = (field: keyof BlogSourceUpsertRequest): void => {
+  clearFieldError(field);
+  emit('clearApiValidationError', field);
+  emit('clearFormError');
+};
 
 const handleSubmit = (): void => {
   const payload = buildSubmitPayload();
@@ -60,22 +82,29 @@ const handleSubmit = (): void => {
       {{ saveMessage }}
     </p>
 
+    <p
+      v-if="formErrorMessage"
+      class="content-state content-state-error form-error-message"
+    >
+      {{ formErrorMessage }}
+    </p>
+
     <div class="form-grid">
       <label class="field-group">
         <span class="field-label">이름</span>
         <input
           v-model="form.name"
-          :class="['field-control', { 'field-control-error': fieldErrors.name }]"
+          :class="['field-control', { 'field-control-error': resolveFieldError('name') }]"
           class="field-control"
           type="text"
           placeholder="예: 우아한형제들 기술블로그"
-          @input="clearFieldError('name')"
+          @input="handleFieldInput('name')"
         >
         <span
-          v-if="fieldErrors.name"
+          v-if="resolveFieldError('name')"
           class="field-error"
         >
-          {{ fieldErrors.name }}
+          {{ resolveFieldError('name') }}
         </span>
       </label>
 
@@ -93,17 +122,17 @@ const handleSubmit = (): void => {
         <span class="field-label">사이트 URL</span>
         <input
           v-model="form.siteUrl"
-          :class="['field-control', { 'field-control-error': fieldErrors.siteUrl }]"
+          :class="['field-control', { 'field-control-error': resolveFieldError('siteUrl') }]"
           class="field-control"
           type="url"
           placeholder="https://example.com"
-          @input="clearFieldError('siteUrl')"
+          @input="handleFieldInput('siteUrl')"
         >
         <span
-          v-if="fieldErrors.siteUrl"
+          v-if="resolveFieldError('siteUrl')"
           class="field-error"
         >
-          {{ fieldErrors.siteUrl }}
+          {{ resolveFieldError('siteUrl') }}
         </span>
       </label>
 
@@ -111,17 +140,17 @@ const handleSubmit = (): void => {
         <span class="field-label">Feed URL</span>
         <input
           v-model="form.feedUrl"
-          :class="['field-control', { 'field-control-error': fieldErrors.feedUrl }]"
+          :class="['field-control', { 'field-control-error': resolveFieldError('feedUrl') }]"
           class="field-control"
           type="url"
           placeholder="https://example.com/feed.xml"
-          @input="clearFieldError('feedUrl')"
+          @input="handleFieldInput('feedUrl')"
         >
         <span
-          v-if="fieldErrors.feedUrl"
+          v-if="resolveFieldError('feedUrl')"
           class="field-error"
         >
-          {{ fieldErrors.feedUrl }}
+          {{ resolveFieldError('feedUrl') }}
         </span>
       </label>
     </div>

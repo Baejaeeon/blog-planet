@@ -18,14 +18,18 @@ const {
   saveMessage,
   isLoading: isBlogSourcesLoading,
   errorMessage: blogSourcesErrorMessage,
+  formErrorMessage,
   selectedBlogSource,
   enabledSourceCount,
   editSource,
   createNewSource,
   cancelEditSource,
+  clearFormError,
+  clearValidationError,
   submitBlogSource,
   toggleSourceEnabled,
-  deleteSource
+  deleteSource,
+  validationErrors
 } = useBlogSources();
 
 const {
@@ -34,6 +38,10 @@ const {
   isLoading: isRecentActivityLoading,
   errorMessage: recentActivityErrorMessage
 } = useRecentActivity(blogSources);
+
+const failedSourceCount = computed(
+  () => sourceStatuses.value.filter((status) => status.lastPollFailureMessage !== null).length
+);
 
 const summaryItems = computed<SummaryItem[]>(() => [
   {
@@ -48,8 +56,16 @@ const summaryItems = computed<SummaryItem[]>(() => [
   },
   {
     label: '최근 수집 상태',
-    value: '대기',
-    tone: 'muted'
+    value: sourceStatuses.value.length === 0
+      ? '대기'
+      : failedSourceCount.value > 0
+        ? `${failedSourceCount.value} 실패`
+        : '정상',
+    tone: sourceStatuses.value.length === 0
+      ? 'muted'
+      : failedSourceCount.value > 0
+        ? 'neutral'
+        : 'accent'
   }
 ]);
 </script>
@@ -87,7 +103,11 @@ const summaryItems = computed<SummaryItem[]>(() => [
           <BlogSourceFormSection
             :selected-blog-source="selectedBlogSource"
             :save-message="saveMessage"
+            :form-error-message="formErrorMessage"
+            :api-validation-errors="validationErrors"
             @cancel-edit="cancelEditSource"
+            @clear-api-validation-error="clearValidationError"
+            @clear-form-error="clearFormError"
             @create-new="createNewSource"
             @submit="submitBlogSource"
           />

@@ -1,136 +1,184 @@
-import { computed, ref } from 'vue';
-import type { BlogSource, BlogSourceUpsertRequest } from '../types';
+import { computed, onMounted, ref } from 'vue';
+import { ApiRequestError } from '../api/client';
+import {
+  createBlogSource,
+  deleteBlogSource as deleteBlogSourceRequest,
+  getBlogSources,
+  updateBlogSource,
+  updateBlogSourceEnabled
+} from '../api/admin';
+import type { ApiValidationError, BlogSource, BlogSourceUpsertRequest } from '../types';
 
-const initialBlogSources: BlogSource[] = [
-  {
-    id: 1,
-    name: '우아한형제들 기술블로그',
-    siteUrl: 'https://techblog.woowahan.com',
-    feedUrl: 'https://techblog.woowahan.com/feed',
-    enabled: true,
-    category: 'backend',
-    createdAt: '2026-06-24T09:00:00',
-    updatedAt: '2026-06-24T10:10:00'
-  },
-  {
-    id: 2,
-    name: '네이버 D2',
-    siteUrl: 'https://d2.naver.com',
-    feedUrl: 'https://d2.naver.com/d2.atom',
-    enabled: true,
-    category: 'platform',
-    createdAt: '2026-06-24T09:20:00',
-    updatedAt: '2026-06-24T10:05:00'
-  },
-  {
-    id: 3,
-    name: '컬리 기술 블로그',
-    siteUrl: 'https://helloworld.kurly.com',
-    feedUrl: 'https://helloworld.kurly.com/feed.xml',
-    enabled: false,
-    category: 'commerce',
-    createdAt: '2026-06-24T09:45:00',
-    updatedAt: '2026-06-24T09:58:00'
+const LOAD_ERROR_MESSAGE = '블로그 목록을 불러오지 못했습니다.';
+
+const resolveErrorMessage = (error: unknown, fallbackMessage: string): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
   }
-];
+
+  return fallbackMessage;
+};
 
 export function useBlogSources() {
-  const blogSources = ref<BlogSource[]>(initialBlogSources);
-  const selectedBlogSourceId = ref<number | null>(1);
-  const saveMessage = ref<string | null>('샘플 데이터 기준으로 수정 폼이 연결되어 있습니다.');
+  const blogSources = ref<BlogSource[]>([]);
+  const selectedBlogSourceId = ref<number | null>(null);
+  const saveMessage = ref<string | null>(null);
   const isLoading = ref(false);
   const errorMessage = ref<string | null>(null);
+  const formErrorMessage = ref<string | null>(null);
+  const validationErrors = ref<ApiValidationError[]>([]);
 
   const selectedBlogSource = computed<BlogSource | null>(
     () => blogSources.value.find((blogSource) => blogSource.id === selectedBlogSourceId.value) ?? null
   );
   const enabledSourceCount = computed(() => blogSources.value.filter((blogSource) => blogSource.enabled).length);
 
+  const applySelection = (nextBlogSources: BlogSource[], preferredBlogSourceId?: number | null): void => {
+    if (preferredBlogSourceId !== undefined && preferredBlogSourceId !== null) {
+      selectedBlogSourceId.value = nextBlogSources.some((blogSource) => blogSource.id === preferredBlogSourceId)
+        ? preferredBlogSourceId
+        : nextBlogSources[0]?.id ?? null;
+      return;
+    }
+
+    if (selectedBlogSourceId.value !== null) {
+      selectedBlogSourceId.value = nextBlogSources.some((blogSource) => blogSource.id === selectedBlogSourceId.value)
+        ? selectedBlogSourceId.value
+        : nextBlogSources[0]?.id ?? null;
+      return;
+    }
+
+    selectedBlogSourceId.value = nextBlogSources[0]?.id ?? null;
+  };
+
+  const loadBlogSources = async (preferredBlogSourceId?: number | null): Promise<void> => {
+    isLoading.value = true;
+    errorMessage.value = null;
+
+    try {
+      const nextBlogSources = await getBlogSources();
+      blogSources.value = nextBlogSources;
+      applySelection(nextBlogSources, preferredBlogSourceId);
+    } catch (error) {
+      errorMessage.value = resolveErrorMessage(error, LOAD_ERROR_MESSAGE);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const editSource = (blogSourceId: number): void => {
     selectedBlogSourceId.value = blogSourceId;
+    formErrorMessage.value = null;
+    validationErrors.value = [];
     const target = blogSources.value.find((blogSource) => blogSource.id === blogSourceId);
     saveMessage.value = target ? `${target.name} 수정 모드` : null;
   };
 
   const createNewSource = (): void => {
     selectedBlogSourceId.value = null;
+    formErrorMessage.value = null;
+    validationErrors.value = [];
     saveMessage.value = '새 블로그 소스를 등록할 수 있습니다.';
   };
 
   const cancelEditSource = (): void => {
     selectedBlogSourceId.value = null;
+    formErrorMessage.value = null;
+    validationErrors.value = [];
     saveMessage.value = '수정 모드를 종료했습니다.';
   };
 
-  const submitBlogSource = (payload: BlogSourceUpsertRequest): void => {
-    const now = new Date().toISOString();
+  const clearFormError = (): void => {
+    formErrorMessage.value = null;
+  };
 
-    if (selectedBlogSource.value) {
+  const clearValidationError = (field: string): void => {
+    validationErrors.value = validationErrors.value.filter((validationError) => validationError.field !== field);
+  };
+
+  // Mutation refresh strategy:
+  // - create/update/delete: refetch the full list to stay aligned with server state and selection
+  // - enabled toggle: apply the returned item locally for a quicker interaction
+  // - recent activity: refresh separately by watching blog source changes
+
+  const submitBlogSource = async (payload: BlogSourceUpsertRequest): Promise<void> => {
+    isLoading.value = true;
+    errorMessage.value = null;
+    formErrorMessage.value = null;
+    validationErrors.value = [];
+
+    try {
+      const savedBlogSource = selectedBlogSource.value
+        ? await updateBlogSource(selectedBlogSource.value.id, payload)
+        : await createBlogSource(payload);
+
+      saveMessage.value = selectedBlogSource.value
+        ? `${savedBlogSource.name} 정보를 반영했습니다.`
+        : `${savedBlogSource.name} 소스를 추가했습니다.`;
+
+      await loadBlogSources(savedBlogSource.id);
+    } catch (error) {
+      if (error instanceof ApiRequestError) {
+        formErrorMessage.value = error.response?.message ?? error.message;
+        validationErrors.value = error.response?.validationErrors ?? [];
+      } else {
+        formErrorMessage.value = resolveErrorMessage(error, '블로그 소스를 저장하지 못했습니다.');
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const toggleSourceEnabled = async (blogSourceId: number): Promise<void> => {
+    const target = blogSources.value.find((blogSource) => blogSource.id === blogSourceId);
+
+    if (!target) {
+      return;
+    }
+
+    isLoading.value = true;
+    errorMessage.value = null;
+
+    try {
+      const updatedBlogSource = await updateBlogSourceEnabled(blogSourceId, {
+        enabled: !target.enabled
+      });
+
       blogSources.value = blogSources.value.map((blogSource) =>
-        blogSource.id === selectedBlogSource.value?.id
-          ? {
-              ...blogSource,
-              ...payload,
-              updatedAt: now
-            }
-          : blogSource
+        blogSource.id === updatedBlogSource.id ? updatedBlogSource : blogSource
       );
-      saveMessage.value = `${payload.name} 정보를 반영했습니다.`;
-      return;
+      saveMessage.value = `${updatedBlogSource.name} 소스를 ${updatedBlogSource.enabled ? '활성화' : '비활성화'}했습니다.`;
+    } catch (error) {
+      errorMessage.value = resolveErrorMessage(error, '블로그 소스 활성 상태를 변경하지 못했습니다.');
+    } finally {
+      isLoading.value = false;
     }
-
-    const nextId = Math.max(...blogSources.value.map((blogSource) => blogSource.id), 0) + 1;
-    blogSources.value = [
-      {
-        id: nextId,
-        ...payload,
-        createdAt: now,
-        updatedAt: now
-      },
-      ...blogSources.value
-    ];
-    selectedBlogSourceId.value = nextId;
-    saveMessage.value = `${payload.name} 소스를 추가했습니다.`;
   };
 
-  const toggleSourceEnabled = (blogSourceId: number): void => {
+  const deleteSource = async (blogSourceId: number): Promise<void> => {
     const target = blogSources.value.find((blogSource) => blogSource.id === blogSourceId);
 
     if (!target) {
       return;
     }
 
-    const nextEnabled = !target.enabled;
-    const nextUpdatedAt = new Date().toISOString();
+    isLoading.value = true;
+    errorMessage.value = null;
 
-    blogSources.value = blogSources.value.map((blogSource) =>
-      blogSource.id === blogSourceId
-        ? {
-            ...blogSource,
-            enabled: nextEnabled,
-            updatedAt: nextUpdatedAt
-          }
-        : blogSource
-    );
-
-    saveMessage.value = `${target.name} 소스를 ${nextEnabled ? '활성화' : '비활성화'}했습니다.`;
+    try {
+      await deleteBlogSourceRequest(blogSourceId);
+      saveMessage.value = `${target.name} 소스를 목록에서 제거했습니다.`;
+      await loadBlogSources();
+    } catch (error) {
+      errorMessage.value = resolveErrorMessage(error, '블로그 소스를 삭제하지 못했습니다.');
+    } finally {
+      isLoading.value = false;
+    }
   };
 
-  const deleteSource = (blogSourceId: number): void => {
-    const target = blogSources.value.find((blogSource) => blogSource.id === blogSourceId);
-
-    if (!target) {
-      return;
-    }
-
-    blogSources.value = blogSources.value.filter((blogSource) => blogSource.id !== blogSourceId);
-
-    if (selectedBlogSourceId.value === blogSourceId) {
-      selectedBlogSourceId.value = null;
-    }
-
-    saveMessage.value = `${target.name} 소스를 목록에서 제거했습니다.`;
-  };
+  onMounted(() => {
+    void loadBlogSources();
+  });
 
   return {
     blogSources,
@@ -143,8 +191,13 @@ export function useBlogSources() {
     editSource,
     createNewSource,
     cancelEditSource,
+    clearFormError,
+    clearValidationError,
     submitBlogSource,
     toggleSourceEnabled,
-    deleteSource
+    deleteSource,
+    loadBlogSources,
+    formErrorMessage,
+    validationErrors
   };
 }

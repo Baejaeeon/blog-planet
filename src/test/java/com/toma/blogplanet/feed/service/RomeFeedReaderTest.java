@@ -85,6 +85,33 @@ class RomeFeedReaderTest {
                 .hasCauseInstanceOf(SocketTimeoutException.class);
     }
 
+    @Test
+    @DisplayName("피드 응답이 200번대가 아니면 공통 예외로 감싼다.")
+    void readFeedWithHttpError() throws Exception {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/forbidden-feed", exchange -> {
+            byte[] response = "forbidden".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(403, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            } finally {
+                exchange.close();
+            }
+        });
+        server.start();
+
+        RomeFeedReader reader = new RomeFeedReader(new FeedPollingProperties(
+                Duration.ofMinutes(30),
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(1)
+        ));
+
+        assertThatThrownBy(() -> reader.read("http://localhost:" + server.getAddress().getPort() + "/forbidden-feed"))
+                .isInstanceOf(FeedReadException.class)
+                .hasCauseInstanceOf(IOException.class)
+                .hasRootCauseMessage("피드 요청이 실패했습니다. status=403");
+    }
+
     private void writeResponse(HttpExchange exchange, String body) throws IOException {
         byte[] response = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/rss+xml; charset=UTF-8");

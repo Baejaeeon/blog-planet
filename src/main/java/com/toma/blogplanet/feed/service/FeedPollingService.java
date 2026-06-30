@@ -38,11 +38,15 @@ public class FeedPollingService {
             try {
                 savedPostCount += saveNewPosts(blogSource);
             } catch (FeedReadException | IllegalArgumentException exception) {
+                Throwable rootCause = resolveRootCause(exception);
                 log.warn(
-                        "피드 수집에 실패했습니다. blogSourceId={}, feedUrl={}, message={}",
+                        "피드 수집에 실패했습니다. blogSourceId={}, feedUrl={}, message={}, rootCauseType={}, rootCauseMessage={}",
                         blogSource.getId(),
                         blogSource.getFeedUrl(),
-                        exception.getMessage()
+                        exception.getMessage(),
+                        rootCause.getClass().getSimpleName(),
+                        rootCause.getMessage(),
+                        exception
                 );
             }
         }
@@ -134,6 +138,14 @@ public class FeedPollingService {
 
     private boolean hasText(String value) {
         return StringUtils.hasText(value);
+    }
+
+    private Throwable resolveRootCause(Throwable throwable) {
+        Throwable rootCause = throwable;
+        while (rootCause.getCause() != null) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause;
     }
 
     private void dispatchNotifications(BlogSource blogSource, List<BlogPost> newPosts) {
